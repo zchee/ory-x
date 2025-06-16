@@ -15,11 +15,14 @@ const (
 	// DriverCockroachDB is the cockroach driver name.
 	DriverCockroachDB = "cockroach"
 
+	// DriverSpanner is the spanner driver name.
+	DriverSpanner = "spanner"
+
 	// UnknownDriver is the driver name if the driver is unknown.
 	UnknownDriver = "unknown"
 )
 
-// Canonicalize returns constants DriverMySQL, DriverPostgreSQL, DriverCockroachDB, UnknownDriver, depending on `database`.
+// Canonicalize returns constants DriverMySQL, DriverPostgreSQL, DriverCockroachDB, DriverSpanner, UnknownDriver, depending on `database`.
 func Canonicalize(database string) string {
 	switch database {
 	case "mysql":
@@ -28,12 +31,14 @@ func Canonicalize(database string) string {
 		return DriverPostgreSQL
 	case "cockroach":
 		return DriverCockroachDB
+	case "spanner":
+		return DriverSpanner
 	default:
 		return UnknownDriver
 	}
 }
 
-// MustCanonicalize returns constants DriverMySQL, DriverPostgreSQL, DriverCockroachDB or fatals.
+// MustCanonicalize returns constants DriverMySQL, DriverPostgreSQL, DriverCockroachDB, DriverSpanner or fatals.
 func MustCanonicalize(database string) string {
 	d := Canonicalize(database)
 	if d == UnknownDriver {

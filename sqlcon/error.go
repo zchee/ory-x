@@ -8,14 +8,19 @@ import (
 	"net/http"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/googleapis/gax-go/v2/apierror"
+	spannerdriver "github.com/googleapis/go-sql-spanner"
 	"github.com/jackc/pgconn"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 
 	"github.com/ory/herodot"
 )
+
+var _ spannerdriver.SpannerConn
 
 var (
 	// ErrUniqueViolation is returned when^a SQL INSERT / UPDATE command returns a conflict.
@@ -60,6 +65,19 @@ func handlePostgres(err error, sqlState string) error {
 	return errors.WithStack(err)
 }
 
+func handleSpanner(err error, st *status.Status) error {
+	// switch sqlState {
+	// case "23505": // "unique_violation"
+	// 	return errors.WithStack(ErrUniqueViolation.WithWrap(err))
+	// case "40001", // "serialization_failure" in CRDB
+	// 	"CR000": // "serialization_failure"
+	// 	return errors.WithStack(ErrConcurrentUpdate.WithWrap(err))
+	// case "42P01": // "no such table"
+	// 	return errors.WithStack(ErrNoSuchTable.WithWrap(err))
+	// }
+	return errors.WithStack(err)
+}
+
 type stater interface {
 	SQLState() string
 }
@@ -79,6 +97,8 @@ func HandleError(err error) error {
 		return handlePostgres(err, string(e.Code))
 	} else if e := new(pgconn.PgError); errors.As(err, &e) {
 		return handlePostgres(err, e.Code)
+	} else if e := new(apierror.APIError); errors.As(err, &e) {
+		return handleSpanner(err, e.GRPCStatus())
 	} else if e := new(mysql.MySQLError); errors.As(err, &e) {
 		switch e.Number {
 		case 1062:
